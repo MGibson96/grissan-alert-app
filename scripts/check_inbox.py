@@ -15,6 +15,7 @@ import sys
 from dotenv import load_dotenv
 
 from src.inbox_watcher import InboxWatcher, get_body_text, get_message_id
+from src.main import build_sms_message
 from src.parser import ParseError, parse_oem_alert
 
 load_dotenv()
@@ -69,6 +70,7 @@ def main() -> None:
         print("    Parsed OK:")
         for key, value in alert.as_dict().items():
             print(f"      {key}: {value}")
+        print(f"    SMS preview: {build_sms_message(alert)}")
         print()
 
 

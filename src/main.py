@@ -30,6 +30,13 @@ def with_retry(fn, *, description: str):
     return str(last_error)
 
 
+def build_sms_message(alert) -> str:
+    return (
+        f"ALERT - high {alert.metric} vibration has been detected on "
+        f"{alert.machine} at {alert.measuring_point}. Please check within 24 hours."
+    )
+
+
 def process_message(msg, deps) -> None:
     message_id = get_message_id(msg)
     if deps["audit"].already_processed(message_id):
@@ -69,15 +76,13 @@ def process_message(msg, deps) -> None:
     )
     deps["audit"].record_email_result(message_id, email_error is None, email_error)
 
+    sms_message = build_sms_message(alert)
+
     if not deps["settings"].enable_sms:
-        logger.info("ENABLE_SMS is false - skipping SMS for %s", message_id)
+        print(f"\n[SMS preview - not sent, ENABLE_SMS=false]\nTo: {', '.join(recipients.phones)}\n{sms_message}\n")
         deps["audit"].record_sms_result(message_id, False, "skipped (ENABLE_SMS=false)")
         return
 
-    sms_message = (
-        f"ALERT - high {alert.metric} vibration has been detected on "
-        f"{alert.machine} at {alert.measuring_point}. Please check within 24 hours."
-    )
     sms_error = with_retry(
         lambda: deps["sms"].send(recipients.phones, sms_message),
         description=f"sms send for {message_id}",
