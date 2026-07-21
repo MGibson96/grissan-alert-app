@@ -48,18 +48,40 @@ Fill in `.env`:
 
 ### AWS SNS (SMS)
 
-1. Create an IAM user/role with `sns:Publish` permission.
+1. Create an IAM user with a policy scoped to just `sns:Publish` (see
+   below), and generate an access key for it.
 2. Set `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` (or
    rely on the default credential chain — instance role, `~/.aws/credentials`,
    etc. — and leave the key vars blank).
 3. Note: new AWS accounts start in the SNS SMS "sandbox" in most regions,
-   which only allows sending to verified numbers. Request production
-   access in the SNS console before going live with real customer numbers.
+   which only allows sending to verified numbers. Verify your own number
+   in the SNS console for testing; request production access before going
+   live with real customer numbers.
+
+Minimal IAM policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Effect": "Allow", "Action": ["sns:Publish"], "Resource": "*" }
+  ]
+}
+```
+
+Once `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_REGION` are set in
+`.env`, verify the setup in isolation (no Gmail config needed) with:
+
+```bash
+python -m scripts.verify_sns +15551234567
+```
 
 ### Recipient mapping
 
-Edit `config/recipients.yaml` — maps `site_id` (or `sensor_id`) to a
-customer name, email contacts, and E.164-format phone numbers.
+Edit `config/recipients.yaml` — maps `site` (the "Site" field from the
+Analytix alarm, e.g. `Grissan`) to a customer name, email contacts, and
+E.164-format phone numbers. Optionally add per-machine contact overrides
+under a site's `machines` key.
 
 ## Running
 
