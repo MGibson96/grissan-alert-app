@@ -46,6 +46,16 @@ Fill in `.env`:
 3. Set `GMAIL_ADDRESS` to that inbox.
 4. Set `OEM_SENDER_FILTER` to the OEM's alert sender address.
 
+Once those four are set, check it end-to-end (no AWS needed for this) with:
+
+```bash
+python -m scripts.check_inbox
+```
+
+Lists every matching email currently in the inbox and what the parser
+extracts from each. Read-only — doesn't send anything or touch the audit
+log, so it's safe to re-run anytime.
+
 ### AWS SNS (SMS)
 
 1. Create an IAM user with a policy scoped to just `sns:Publish` (see
