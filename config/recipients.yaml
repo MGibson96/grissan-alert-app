@@ -8,12 +8,15 @@
 # Phone numbers must be in E.164 format (e.g. +15551234567) for AWS SNS.
 #
 # This is a placeholder — replace with the real site(s) and contacts.
+# emails/phones below point at a personal test inbox/number for now so you
+# can see the dispatch working end-to-end; swap for real customer contacts
+# before this goes live.
 
 sites:
-  Grissan:
+  "Grissan - Carrick":
     customer: Grissan
     emails:
-      - contact@example.com
+      - mjsgibson1@gmail.com
     phones:
       - "+15551234567"
     # machines:

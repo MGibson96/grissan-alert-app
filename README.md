@@ -107,9 +107,14 @@ under a site's `machines` key.
 python -m src.main
 ```
 
-Polls every `POLL_INTERVAL_SECONDS` (default 300s). Runs indefinitely;
-run it under `systemd`, `supervisord`, `pm2`, or similar for production
-use on a VM or Pi.
+Polls every `POLL_INTERVAL_SECONDS` (default 300s). Runs indefinitely —
+`Ctrl+C` to stop; run it under `systemd`, `supervisord`, `pm2`, or
+similar for production use on a VM or Pi.
+
+Set `ENABLE_SMS=false` in `.env` to run the full pipeline (Gmail →
+parse → recipient lookup → branded email) without AWS set up yet — SMS
+is skipped and logged instead of attempted. Set it back to `true` (or
+remove it — that's the default) once AWS SNS is ready.
 
 ## Tests
 

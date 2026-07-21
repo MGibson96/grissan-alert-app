@@ -69,6 +69,11 @@ def process_message(msg, deps) -> None:
     )
     deps["audit"].record_email_result(message_id, email_error is None, email_error)
 
+    if not deps["settings"].enable_sms:
+        logger.info("ENABLE_SMS is false - skipping SMS for %s", message_id)
+        deps["audit"].record_sms_result(message_id, False, "skipped (ENABLE_SMS=false)")
+        return
+
     sms_message = (
         f"ALERT - high {alert.metric} vibration has been detected on "
         f"{alert.machine} at {alert.measuring_point}. Please check within 24 hours."
