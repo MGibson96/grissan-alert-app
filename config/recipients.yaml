@@ -1,0 +1,18 @@
+# Sensor/site -> customer -> contact mapping.
+#
+# Keyed by site_id first, falling back to sensor_id if a site isn't
+# matched (some OEM alerts may only carry a sensor_id). Phone numbers must
+# be in E.164 format (e.g. +15551234567) for AWS SNS.
+#
+# This is a placeholder. Replace with real sites/contacts once we know how
+# (or whether) this mapping is tracked elsewhere already.
+
+sites:
+  SITE-001:
+    customer: Example Customer Ltd
+    emails:
+      - contact@example.com
+    phones:
+      - "+15551234567"
+
+sensors: {}

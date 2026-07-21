@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+  <body style="margin:0; padding:0; background:#f4f5f7; font-family: Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+            <tr>
+              <td style="background:#0b2e4f; padding:20px 24px;">
+                <span style="color:#ffffff; font-size:18px; font-weight:bold;">{{ company_name }} Alert</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px;">
+                <p style="margin:0 0 16px 0; font-size:15px; color:#1a1a1a;">
+                  A <strong>{{ severity }}</strong> alert was detected for site
+                  <strong>{{ site_id }}</strong> (sensor {{ sensor_id }}).
+                </p>
+                <table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="font-size:14px; color:#1a1a1a; border-collapse:collapse;">
+                  <tr>
+                    <td style="width:140px; color:#555;">Alert type</td>
+                    <td>{{ alert_type }}</td>
+                  </tr>
+                  <tr>
+                    <td style="color:#555;">Severity</td>
+                    <td>{{ severity }}</td>
+                  </tr>
+                  <tr>
+                    <td style="color:#555;">Sensor</td>
+                    <td>{{ sensor_id }}</td>
+                  </tr>
+                  <tr>
+                    <td style="color:#555;">Site</td>
+                    <td>{{ site_id }}</td>
+                  </tr>
+                  {% if timestamp %}
+                  <tr>
+                    <td style="color:#555;">Time</td>
+                    <td>{{ timestamp }}</td>
+                  </tr>
+                  {% endif %}
+                  {% if reading_value %}
+                  <tr>
+                    <td style="color:#555;">Reading</td>
+                    <td>{{ reading_value }}</td>
+                  </tr>
+                  {% endif %}
+                </table>
+                <p style="margin:24px 0 0 0; font-size:13px; color:#777;">
+                  This alert was sent by {{ company_name }} on behalf of your monitoring provider.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
