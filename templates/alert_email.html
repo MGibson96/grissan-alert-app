@@ -13,36 +13,52 @@
             <tr>
               <td style="padding:24px;">
                 <p style="margin:0 0 16px 0; font-size:15px; color:#1a1a1a;">
-                  A <strong>{{ severity }}</strong> alert was detected for site
-                  <strong>{{ site_id }}</strong> (sensor {{ sensor_id }}).
+                  A <strong>{{ severity }}</strong> alert was detected at
+                  <strong>{{ site }}</strong> on <strong>{{ machine }}</strong>.
                 </p>
                 <table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="font-size:14px; color:#1a1a1a; border-collapse:collapse;">
                   <tr>
-                    <td style="width:140px; color:#555;">Alert type</td>
-                    <td>{{ alert_type }}</td>
+                    <td style="width:140px; color:#555;">Site</td>
+                    <td>{{ site }}</td>
                   </tr>
+                  <tr>
+                    <td style="color:#555;">Machine</td>
+                    <td>{{ machine }}</td>
+                  </tr>
+                  {% if measuring_point %}
+                  <tr>
+                    <td style="color:#555;">Measuring point</td>
+                    <td>{{ measuring_point }}</td>
+                  </tr>
+                  {% endif %}
+                  {% if vib_direction %}
+                  <tr>
+                    <td style="color:#555;">Direction</td>
+                    <td>{{ vib_direction }}</td>
+                  </tr>
+                  {% endif %}
+                  <tr>
+                    <td style="color:#555;">Metric</td>
+                    <td>{{ metric }}</td>
+                  </tr>
+                  <tr>
+                    <td style="color:#555;">Reading</td>
+                    <td>{{ reading_value }}</td>
+                  </tr>
+                  {% if threshold_value %}
+                  <tr>
+                    <td style="color:#555;">Threshold</td>
+                    <td>{{ comparison }} {{ threshold_value }}</td>
+                  </tr>
+                  {% endif %}
                   <tr>
                     <td style="color:#555;">Severity</td>
                     <td>{{ severity }}</td>
-                  </tr>
-                  <tr>
-                    <td style="color:#555;">Sensor</td>
-                    <td>{{ sensor_id }}</td>
-                  </tr>
-                  <tr>
-                    <td style="color:#555;">Site</td>
-                    <td>{{ site_id }}</td>
                   </tr>
                   {% if timestamp %}
                   <tr>
                     <td style="color:#555;">Time</td>
                     <td>{{ timestamp }}</td>
-                  </tr>
-                  {% endif %}
-                  {% if reading_value %}
-                  <tr>
-                    <td style="color:#555;">Reading</td>
-                    <td>{{ reading_value }}</td>
                   </tr>
                   {% endif %}
                 </table>

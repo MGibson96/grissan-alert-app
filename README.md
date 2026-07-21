@@ -77,18 +77,38 @@ use on a VM or Pi.
 pytest tests/
 ```
 
-## Known gap: the parser needs a real sample email
+## Parser status
 
-`src/parser.py` currently extracts fields with placeholder regex patterns
-(`Sensor ID: ...`, `Site ID: ...`, etc.) that are **not** based on an
-actual OEM alert email — we don't have one yet. Before this goes live:
+`src/parser.py` is built against one real sample: an Analytix
+condition-monitoring alarm email (vibration TWF acceleration, Critical
+severity, site "Grissan"). That fixture lives at
+`tests/fixtures/analytix_twf_acceleration.txt` and is covered by
+`tests/test_parser.py`.
 
-1. Get a real sample OEM alert email (forward one into the monitored
-   inbox, or paste the raw source).
-2. Update `FIELD_PATTERNS` in `src/parser.py` to match its actual
-   structure (plain text vs. HTML table, exact field labels, etc.).
-3. Add the real sample as a fixture in `tests/` and update
-   `test_parser.py` to parse it directly.
+Fields extracted: `severity` (from the subject line), `site`, `machine`,
+`measuring_point`, `vib_direction`, `metric` + `reading_value` (the
+"`<metric> received:`" line — the metric name is dynamic per alarm type),
+`threshold_value` + `comparison` (from "greater than"/"less than" in the
+alarm description), `alarm_id` (UUID), and `timestamp`.
+
+Only `severity`, `site`, `machine`, and the reading are required —
+everything else is best-effort so a slightly different alarm layout
+doesn't hard-fail the pipeline.
+
+**Still open:** only one alarm type has been seen so far (vibration). If
+Analytix sends other metric types (temperature, RPM, etc.), the
+"Vib direction" field may not apply, and there could be other structural
+differences. If you can forward a few more real alerts — different
+severities, different metrics, ideally the raw source (Gmail: **⋮ → Show
+original**, save as `.eml`) rather than just copied text, since exact
+HTML/whitespace structure matters — drop them somewhere I can read them
+and I'll tighten the patterns and add them as fixtures.
+
+Note: don't commit raw sample emails to this repo if they contain real
+customer/site data — `tests/fixtures/` is meant for sanitized or
+already-non-sensitive samples only (the current fixture uses "Grissan",
+which you've already used as the repo name, so it's treated as fine to
+commit here).
 
 ## Not yet built (Phase 2 / open items from the plan)
 

@@ -1,6 +1,8 @@
 import email
+import html as html_module
 import imaplib
 import logging
+import re
 from email.message import Message
 
 logger = logging.getLogger(__name__)
@@ -68,6 +70,23 @@ def get_message_id(msg: Message) -> str:
     return f"generated:{hash(fallback)}"
 
 
+def _html_to_text(raw_html: str) -> str:
+    """Rough HTML -> text conversion, good enough for label/value regex parsing.
+
+    Inserts newlines at block-element boundaries (the OEM alert emails are
+    tables of label/value rows) rather than doing a full DOM parse, since
+    we're only after visible text, not structure.
+    """
+    text = re.sub(r"(?is)<(br|/tr|/p|/div|/li)\s*/?>", "\n", raw_html)
+    text = re.sub(r"(?is)<script.*?</script>|<style.*?</style>", "", text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = html_module.unescape(text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n[ \t]*", "\n", text)
+    text = re.sub(r"\n{2,}", "\n", text)
+    return text.strip()
+
+
 def get_body_text(msg: Message) -> str:
     if msg.is_multipart():
         for part in msg.walk():
@@ -85,11 +104,14 @@ def get_body_text(msg: Message) -> str:
                 payload = part.get_payload(decode=True)
                 if payload:
                     charset = part.get_content_charset() or "utf-8"
-                    return payload.decode(charset, errors="replace")
+                    return _html_to_text(payload.decode(charset, errors="replace"))
         return ""
 
     payload = msg.get_payload(decode=True)
     if payload is None:
         return str(msg.get_payload())
     charset = msg.get_content_charset() or "utf-8"
-    return payload.decode(charset, errors="replace")
+    text = payload.decode(charset, errors="replace")
+    if msg.get_content_type() == "text/html":
+        text = _html_to_text(text)
+    return text

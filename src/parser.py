@@ -1,22 +1,43 @@
 import re
 from dataclasses import dataclass
 
-# NOTE: These patterns are placeholders. The plan calls the OEM emails a
-# fixed template with only variables changing, which makes this a simple
-# regex job — but we don't have a real sample email yet to build the
-# patterns against (see plan's open questions). Replace these with real
-# patterns once a sample alert email is available, and add a fixture under
-# tests/fixtures/ to lock the format in.
-FIELD_PATTERNS = {
-    "sensor_id": re.compile(r"Sensor(?:\s*ID)?\s*[:\-]\s*(\S+)", re.IGNORECASE),
-    "site_id": re.compile(r"Site(?:\s*ID)?\s*[:\-]\s*(\S+)", re.IGNORECASE),
-    "alert_type": re.compile(r"Alert\s*Type\s*[:\-]\s*(.+)", re.IGNORECASE),
-    "severity": re.compile(r"Severity\s*[:\-]\s*(\S+)", re.IGNORECASE),
-    "timestamp": re.compile(r"Time(?:stamp)?\s*[:\-]\s*(.+)", re.IGNORECASE),
-    "reading_value": re.compile(r"Reading(?:\s*Value)?\s*[:\-]\s*(\S+)", re.IGNORECASE),
-}
+# Built against a real Analytix (condition-monitoring) alarm email — see
+# tests/fixtures/analytix_twf_acceleration.txt. Structure observed:
+#
+#   Subject: Critical - TWF acceleration peak (high res) alarm triggered!
+#   ...
+#   Alarms
+#   Critical
+#   Vertical TWF acceleration peak (high res) greater than 655.42mg
+#   ID: 19ea67ea-a70f-4b66-92de-4808fe25cd00
+#   Mon Jul 13 2026 06:03:32 GMT+0100
+#   Alarm Information
+#   Site:	Grissan
+#   Machine:	Screw Conveyor C9
+#   Measuring point:	Conveyor Shaft
+#   Vib direction:	Vertical
+#   TWF acceleration peak (high res) received:	1839.92mg
+#
+# Only one sample so far, and only one alarm/metric type (vibration TWF
+# acceleration). Fields expected to vary across metric types: the
+# "<metric> received:" label, the "greater than"/"less than" comparison,
+# and possibly whether "Vib direction" is present at all for non-vibration
+# metrics. Revisit these patterns once more samples (different severities,
+# metrics, and non-vibration alarms) are available.
 
-REQUIRED_FIELDS = ("sensor_id", "site_id", "alert_type", "severity")
+ALARM_ID_PATTERN = re.compile(
+    r"ID:\s*([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"
+)
+TIMESTAMP_PATTERN = re.compile(
+    r"((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w+\s+\d{1,2}\s+\d{4}\s+\d{2}:\d{2}:\d{2}\s+GMT[+-]\d{4})"
+)
+SUBJECT_SEVERITY_PATTERN = re.compile(r"^\s*(\w+)\s*-\s*")
+SITE_PATTERN = re.compile(r"^Site:\s*(.+)$", re.MULTILINE)
+MACHINE_PATTERN = re.compile(r"^Machine:\s*(.+)$", re.MULTILINE)
+MEASURING_POINT_PATTERN = re.compile(r"^Measuring point:\s*(.+)$", re.MULTILINE)
+VIB_DIRECTION_PATTERN = re.compile(r"^Vib direction:\s*(.+)$", re.MULTILINE)
+READING_PATTERN = re.compile(r"^(.+?)\s+received:\s*(.+)$", re.MULTILINE)
+THRESHOLD_PATTERN = re.compile(r"(greater than|less than|exceeds|below)\s+(\S+)", re.IGNORECASE)
 
 
 class ParseError(Exception):
@@ -25,47 +46,76 @@ class ParseError(Exception):
 
 @dataclass
 class ParsedAlert:
-    sensor_id: str
-    site_id: str
-    alert_type: str
     severity: str
+    site: str
+    machine: str
+    metric: str
+    reading_value: str
+    measuring_point: str | None
+    vib_direction: str | None
+    threshold_value: str | None
+    comparison: str | None
+    alarm_id: str | None
     timestamp: str | None
-    reading_value: str | None
     raw_body: str
 
     def as_dict(self) -> dict:
         return {
-            "sensor_id": self.sensor_id,
-            "site_id": self.site_id,
-            "alert_type": self.alert_type,
             "severity": self.severity,
-            "timestamp": self.timestamp,
+            "site": self.site,
+            "machine": self.machine,
+            "metric": self.metric,
             "reading_value": self.reading_value,
+            "measuring_point": self.measuring_point,
+            "vib_direction": self.vib_direction,
+            "threshold_value": self.threshold_value,
+            "comparison": self.comparison,
+            "alarm_id": self.alarm_id,
+            "timestamp": self.timestamp,
         }
 
 
-def parse_oem_alert(body: str) -> ParsedAlert:
-    """Extracts structured fields from an OEM alert email body.
+def parse_oem_alert(subject: str, body: str) -> ParsedAlert:
+    """Extracts structured fields from an Analytix alarm email.
 
     Raises ParseError if any required field can't be found, so the caller
     can route the alert to the internal failure notification path instead
     of silently dropping it.
     """
-    extracted: dict[str, str | None] = {}
-    for field, pattern in FIELD_PATTERNS.items():
-        match = pattern.search(body)
-        extracted[field] = match.group(1).strip() if match else None
+    severity_match = SUBJECT_SEVERITY_PATTERN.match(subject or "")
+    site_match = SITE_PATTERN.search(body)
+    machine_match = MACHINE_PATTERN.search(body)
+    reading_match = READING_PATTERN.search(body)
 
-    missing = [f for f in REQUIRED_FIELDS if not extracted.get(f)]
+    missing = []
+    if not severity_match:
+        missing.append("severity")
+    if not site_match:
+        missing.append("site")
+    if not machine_match:
+        missing.append("machine")
+    if not reading_match:
+        missing.append("reading")
     if missing:
         raise ParseError(f"Could not extract required field(s): {', '.join(missing)}")
 
+    measuring_point_match = MEASURING_POINT_PATTERN.search(body)
+    vib_direction_match = VIB_DIRECTION_PATTERN.search(body)
+    alarm_id_match = ALARM_ID_PATTERN.search(body)
+    timestamp_match = TIMESTAMP_PATTERN.search(body)
+    threshold_match = THRESHOLD_PATTERN.search(body)
+
     return ParsedAlert(
-        sensor_id=extracted["sensor_id"],
-        site_id=extracted["site_id"],
-        alert_type=extracted["alert_type"],
-        severity=extracted["severity"],
-        timestamp=extracted.get("timestamp"),
-        reading_value=extracted.get("reading_value"),
+        severity=severity_match.group(1).strip(),
+        site=site_match.group(1).strip(),
+        machine=machine_match.group(1).strip(),
+        metric=reading_match.group(1).strip(),
+        reading_value=reading_match.group(2).strip(),
+        measuring_point=measuring_point_match.group(1).strip() if measuring_point_match else None,
+        vib_direction=vib_direction_match.group(1).strip() if vib_direction_match else None,
+        threshold_value=threshold_match.group(2).strip() if threshold_match else None,
+        comparison=threshold_match.group(1).strip().lower() if threshold_match else None,
+        alarm_id=alarm_id_match.group(1) if alarm_id_match else None,
+        timestamp=timestamp_match.group(1) if timestamp_match else None,
         raw_body=body,
     )

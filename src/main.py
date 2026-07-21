@@ -38,8 +38,9 @@ def process_message(msg, deps) -> None:
     deps["audit"].record_received(message_id, msg.get("From", ""), msg.get("Subject", ""))
 
     body = get_body_text(msg)
+    subject = msg.get("Subject", "")
     try:
-        alert = parse_oem_alert(body)
+        alert = parse_oem_alert(subject, body)
     except ParseError as exc:
         logger.error("Failed to parse alert %s: %s", message_id, exc)
         deps["audit"].record_parsed(message_id, None, str(exc))
@@ -48,19 +49,19 @@ def process_message(msg, deps) -> None:
 
     deps["audit"].record_parsed(message_id, alert.as_dict(), None)
 
-    recipients = deps["recipients"].lookup(alert.site_id, alert.sensor_id)
+    recipients = deps["recipients"].lookup(alert.site, alert.machine)
     if recipients is None:
-        logger.error("No recipient mapping for site=%s sensor=%s", alert.site_id, alert.sensor_id)
+        logger.error("No recipient mapping for site=%s machine=%s", alert.site, alert.machine)
         deps["audit"].record_match(message_id, None)
         notify_internal_failure(
-            deps, message_id, msg, f"No recipient mapping for site={alert.site_id} sensor={alert.sensor_id}"
+            deps, message_id, msg, f"No recipient mapping for site={alert.site} machine={alert.machine}"
         )
         return
 
     deps["audit"].record_match(message_id, recipients.customer)
 
     fields = alert.as_dict()
-    subject = f"[{deps['settings'].company_name}] {alert.alert_type} alert - {alert.site_id}"
+    subject = f"[{deps['settings'].company_name}] {alert.metric} alert - {alert.site}"
 
     email_error = with_retry(
         lambda: deps["email"].send(recipients.emails, subject, fields),
@@ -69,8 +70,8 @@ def process_message(msg, deps) -> None:
     deps["audit"].record_email_result(message_id, email_error is None, email_error)
 
     sms_message = (
-        f"{deps['settings'].company_name} alert: {alert.alert_type} "
-        f"({alert.severity}) at site {alert.site_id}, sensor {alert.sensor_id}."
+        f"{deps['settings'].company_name} alert: {alert.metric} "
+        f"({alert.severity}) at {alert.site} - {alert.machine}: {alert.reading_value}."
     )
     sms_error = with_retry(
         lambda: deps["sms"].send(recipients.phones, sms_message),
@@ -86,12 +87,16 @@ def notify_internal_failure(deps, message_id: str, msg, reason: str) -> None:
             [settings.internal_alert_email],
             f"[{settings.company_name}] Alert relay failure",
             {
-                "sensor_id": "n/a",
-                "site_id": "n/a",
-                "alert_type": f"PROCESSING FAILURE: {reason}",
+                "site": "n/a",
+                "machine": "n/a",
+                "metric": f"PROCESSING FAILURE: {reason}",
+                "reading_value": "n/a",
+                "measuring_point": None,
+                "vib_direction": None,
+                "threshold_value": None,
+                "comparison": None,
                 "severity": "internal",
                 "timestamp": None,
-                "reading_value": None,
             },
         )
     except Exception:  # noqa: BLE001 - best-effort internal notification, don't crash the poll loop

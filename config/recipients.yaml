@@ -1,18 +1,22 @@
-# Sensor/site -> customer -> contact mapping.
+# Site -> customer -> contact mapping.
 #
-# Keyed by site_id first, falling back to sensor_id if a site isn't
-# matched (some OEM alerts may only carry a sensor_id). Phone numbers must
-# be in E.164 format (e.g. +15551234567) for AWS SNS.
+# Keyed by the "Site" field from the OEM alarm email (e.g. "Grissan").
+# Optionally, a site can define per-machine overrides under "machines" if
+# different machines at the same site need different contacts — otherwise
+# every alarm for that site goes to the site-level emails/phones.
 #
-# This is a placeholder. Replace with real sites/contacts once we know how
-# (or whether) this mapping is tracked elsewhere already.
+# Phone numbers must be in E.164 format (e.g. +15551234567) for AWS SNS.
+#
+# This is a placeholder — replace with the real site(s) and contacts.
 
 sites:
-  SITE-001:
-    customer: Example Customer Ltd
+  Grissan:
+    customer: Grissan
     emails:
       - contact@example.com
     phones:
       - "+15551234567"
-
-sensors: {}
+    # machines:
+    #   "Screw Conveyor C9":
+    #     emails: [other-contact@example.com]
+    #     phones: ["+15559876543"]
