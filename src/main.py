@@ -70,8 +70,8 @@ def process_message(msg, deps) -> None:
     deps["audit"].record_email_result(message_id, email_error is None, email_error)
 
     sms_message = (
-        f"{deps['settings'].company_name} alert: {alert.metric} "
-        f"({alert.severity}) at {alert.site} - {alert.machine}: {alert.reading_value}."
+        f"ALERT - high {alert.metric} vibration has been detected on "
+        f"{alert.machine} at {alert.measuring_point}. Please check within 24 hours."
     )
     sms_error = with_retry(
         lambda: deps["sms"].send(recipients.phones, sms_message),
