@@ -57,6 +57,14 @@ Fill in `.env`:
    which only allows sending to verified numbers. Verify your own number
    in the SNS console for testing; request production access before going
    live with real customer numbers.
+4. Many destination countries (UK included) require a registered **Sender
+   ID** before AWS will send anything there at all — including the
+   sandbox verification text. If adding/verifying a number fails with
+   "No origination entities available to send", go to **AWS End User
+   Messaging SMS and voice → Sender IDs → Request sender ID**, pick the
+   destination country, and submit a short use case (e.g. "transactional
+   equipment alert notifications for existing customers"). Once approved,
+   set `SNS_SENDER_ID` in `.env` to that ID.
 
 Minimal IAM policy:
 

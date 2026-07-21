@@ -24,6 +24,7 @@ class Settings:
     company_name: str
     internal_alert_email: str
     aws_region: str
+    sns_sender_id: str | None
     audit_db_path: str
     recipients_config_path: str
 
@@ -39,6 +40,7 @@ def load_settings() -> Settings:
         company_name=os.environ.get("COMPANY_NAME", "Ailsa"),
         internal_alert_email=_require("INTERNAL_ALERT_EMAIL"),
         aws_region=os.environ.get("AWS_REGION", "us-east-1"),
+        sns_sender_id=os.environ.get("SNS_SENDER_ID") or None,
         audit_db_path=os.environ.get("AUDIT_DB_PATH", "./data/audit.db"),
         recipients_config_path=os.environ.get("RECIPIENTS_CONFIG_PATH", "./config/recipients.yaml"),
     )

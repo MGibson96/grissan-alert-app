@@ -111,7 +111,7 @@ def build_dependencies():
         "audit": AuditLog(settings.audit_db_path),
         "recipients": RecipientMapping(settings.recipients_config_path),
         "email": EmailDispatcher(settings.smtp_address, settings.smtp_app_password, settings.company_name),
-        "sms": SmsDispatcher(settings.aws_region, settings.company_name),
+        "sms": SmsDispatcher(settings.aws_region, settings.company_name, settings.sns_sender_id),
     }
 
 
